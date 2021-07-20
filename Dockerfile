@@ -10,7 +10,9 @@ COPY pyproject.toml pyproject.toml
 
 RUN echo $PATH
 
-RUN poetry install
+RUN pip install --upgrade pip poetry
+RUN poetry config virtualenvs.create false
+RUN poetry install --no-interaction --no-ansi
 
 COPY . .
 
