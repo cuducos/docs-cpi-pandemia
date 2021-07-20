@@ -101,7 +101,8 @@ class Dowloader:
         *_, name = resp.headers["content-disposition"].split("=")
         path = self.target / self.normalize(name)
         async with aiofiles.open(path, mode="wb") as handler:
-            await handler.write(resp.content)
+            for chunk in resp.iter_bytes():
+                await handler.write(chunk)
 
         self.set_cache(url)
         if path.suffix.lower() == ".zip":
