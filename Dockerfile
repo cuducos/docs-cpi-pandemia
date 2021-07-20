@@ -1,6 +1,7 @@
-FROM python:3.9
+FROM python:3.9-slim-buster
 
 ENV POETRY_VERSION=1.1.7
+VOLUME /data
 
 RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/$POETRY_VERSION/get-poetry.py | python -
 
@@ -17,4 +18,6 @@ RUN poetry install --no-interaction --no-ansi
 
 COPY . .
 
-CMD ["poetry","run","python","-m","cpi_pandemia"]
+ENTRYPOINT ["poetry","run","python","-m","cpi_pandemia"]
+
+CMD ["--directory","/data"]
