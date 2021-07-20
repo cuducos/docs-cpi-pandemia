@@ -28,17 +28,16 @@ Vou tentar manter esse diretório atualizado executando esse programa cerca de 3
 
 Você também pode baixar tudo direto do Senado Federal, instalando esse pacote e digitando apenas um comando.
 
-
 ### Utilização com docker
 
-Requer [Docker](https://docker.com)
+Requer [Docker](https://docker.com):
 
 ```console
 $ docker build -t docs-cpi-pandemia .
 $ docker run -it -v $PWD/data:/data docs-cpi-pandemia
 ```
 
-Os arquivos serão baixados em uma subpasta chamada "data" dentro da pasta onde você executou esse comando.
+Os arquivos serão baixados em um diretório `data/` dentro da pasta onde você executou esse comando.
 
 ### Instalação sem docker
 
