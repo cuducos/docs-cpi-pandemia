@@ -12,4 +12,6 @@ RUN echo $PATH
 
 RUN poetry install
 
-CMD [ "poetry", "run", "python", "-m" "cpi_pandemia" ]
+COPY . .
+
+CMD ["poetry","run","python","-m","cpi_pandemia"]
