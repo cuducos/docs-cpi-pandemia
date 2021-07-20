@@ -7,6 +7,7 @@ RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/$POETRY_VER
 ENV PATH="/root/.poetry/bin:${PATH}"
 
 COPY pyproject.toml pyproject.toml
+COPY poetry.lock poetry.lock
 
 RUN echo $PATH
 
