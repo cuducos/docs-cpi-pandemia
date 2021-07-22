@@ -1,18 +1,13 @@
-FROM python:3.9-slim-buster
+FROM golang:1.16-buster as build
+WORKDIR /docs-cpi-pandemia
+ADD go.* ./
+ADD main.go .
+ADD cache/ ./cache/
+ADD cli/ ./cli/
+ADD downloader/ ./downloader/
+ADD filesystem/ ./filesystem/
+RUN go get && go build -o /usr/bin/docs-cpi-pandemia
 
-ENV POETRY_VERSION=1.1.7
-VOLUME /data
-
-RUN pip install --upgrade pip poetry
-
-COPY pyproject.toml pyproject.toml
-COPY poetry.lock poetry.lock
-
-RUN poetry config virtualenvs.create false
-RUN poetry install --no-interaction --no-ansi
-
-COPY . .
-
-ENTRYPOINT ["poetry","run","python","-m","cpi_pandemia"]
-
-CMD ["--directory","/data"]
+FROM debian:buster-slim
+COPY --from=build /usr/bin/docs-cpi-pandemia /usr/bin/docs-cpi-pandemia
+CMD ["docs-cpi-pandemia"]
