@@ -20,15 +20,31 @@ Links que não puderem ser baixados são listados no arquivo `erros.txt`.
 
 ## Só quero baixar os arquivos
 
+### Dropbox
+
 O resultado está disponibilizado nesse [diretório no Dropbox](https://www.dropbox.com/sh/ccl5u1bu8dkw2io/AADHkNe0pCiSv5MWiomKhA4ga?dl=0), e você pode baixar tudo com um clique.
 
 Vou tentar manter esse diretório atualizado executando esse programa cerca de 3x semana.
+
+### Rodando o `docs-cpi-pandemia` localmente, sem saber de programação
+
+[Baixe o executável](https://www.dropbox.com/sh/fyobdrsy74zxkrw/AAA-NgR_Rpcru4d2PM4WrRFUa?dl=0) compatível com o seu sistema operacional e arquitetura. Execute esse programa no terminal (ou prompt de comando) do seu computador.
+
+Existem opções que podem ser configuradas, as instruções e valores padrões podem ser vistos adicionando `--help` ao final do comando.
 
 ## Sou _hacker_ e quero mais
 
 Você também pode baixar tudo direto do Senado Federal, instalando esse pacote e digitando apenas um comando.
 
-### Utilização com docker
+### Utilizando Go nativo
+
+Requer [Go](https://golang.org/) 1.16.
+
+```console
+$ go run main.go --help
+```
+
+### Utilizando com docker
 
 Requer [Docker](https://docker.com):
 
@@ -38,13 +54,3 @@ $ docker run -it -v $PWD/data:/docs-cpi-pandemia/data docs-cpi-pandemia
 ```
 
 Os arquivos serão baixados em um diretório `data/` dentro da pasta onde você executou esse comando.
-
-### Instalação sem docker
-
-Requer [Go](https://golang.org/) 1.16.
-
-```console
-$ go run main.go
-```
-
-Existem opções que podem ser configuradas, as instruções e valores padrões podem ser vistos adicionando `--help` ao final do comando.
