@@ -56,7 +56,7 @@ func Exists(p string) bool {
 	return !os.IsNotExist(err)
 }
 
-func unzipFile(d string, z *zip.File, normalize bool) error {
+func unzipFile(d string, z *zip.File, norm bool) error {
 	r, err := z.Open()
 	if err != nil {
 		log.Output(2, "Erro ao abrir arquivo dentro de um .zip")
@@ -65,7 +65,7 @@ func unzipFile(d string, z *zip.File, normalize bool) error {
 	defer r.Close()
 
 	p := filepath.Join(d, z.Name)
-	if normalize {
+	if norm {
 		p, err = text.Normalize(p)
 		if err != nil {
 			return err
@@ -93,7 +93,7 @@ func unzipFile(d string, z *zip.File, normalize bool) error {
 	return err
 }
 
-func Unzip(p string, normalize bool) error {
+func Unzip(p string, norm bool) error {
 	r, err := zip.OpenReader(p)
 	if err != nil {
 		return err
@@ -104,7 +104,7 @@ func Unzip(p string, normalize bool) error {
 	os.MkdirAll(d, 0755)
 
 	for _, f := range r.File {
-		err := unzipFile(d, f, normalize)
+		err := unzipFile(d, f, norm)
 		if err != nil {
 			return err
 		}
