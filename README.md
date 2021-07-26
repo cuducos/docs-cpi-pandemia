@@ -4,7 +4,15 @@ A [CPI da Pandemia](https://legis.senado.leg.br/comissoes/comissao?codcol=2441) 
 
 Mas como clicar um por um leva tempo, automatizamos o **download** e **descompactação** de todos esses arquivos, facilitando assim não só o acesso, mas também buscas nos arquivos com ferramentas como Evernote, Spotlight, etc.
 
-## Aviso importante
+## Avisos importantes
+
+### Nome dos arquivos
+
+Para sincronizar esses arquivos na nuvem e evitar erros no sistema de arquivos, todos os nomes de arquivos foram normalizados retirando acentuação e caracteres especiais.
+
+Por exemplo, um arquivo chamado `Ofício.text` é renomeado para `Oficio.txt`.
+
+### Erros
 
 Algumas links para baixar os documentos públicos não funcionam pois o servidor do Senado parece instável. Mesmo com estratégias de repetir a tentativa em caso de erro, pode ser que nem todos os arquivos listados estejam, de fato, disponível.
 

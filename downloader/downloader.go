@@ -14,6 +14,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/cuducos/docs-cpi-pandemia/cache"
 	"github.com/cuducos/docs-cpi-pandemia/filesystem"
+	"github.com/cuducos/docs-cpi-pandemia/text"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/schollz/progressbar/v3"
 )
@@ -58,7 +59,7 @@ func getUrls() ([]string, error) {
 	return u, nil
 }
 
-func getFileInfo(s *settings, u string) (string, error) {
+func getFileName(s *settings, u string) (string, error) {
 	r, err := s.client.Head(u)
 	if err != nil {
 		return "", err
@@ -75,7 +76,7 @@ func getFileInfo(s *settings, u string) (string, error) {
 		return "", e
 	}
 
-	return p[1], nil
+	return text.Normalize(p[1])
 }
 
 func unarchive(p string) error {
@@ -83,7 +84,7 @@ func unarchive(p string) error {
 		return nil
 	}
 
-	return filesystem.Unzip(p)
+	return filesystem.Unzip(p, true)
 }
 
 func downloadFile(s *settings, u string) result {
@@ -91,7 +92,7 @@ func downloadFile(s *settings, u string) result {
 		return result{u, nil}
 	}
 
-	n, err := getFileInfo(s, u)
+	n, err := getFileName(s, u)
 	if err != nil {
 		return result{u, err}
 	}

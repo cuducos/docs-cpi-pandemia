@@ -6,6 +6,7 @@ COPY cache/ ./cache/
 COPY cli/ ./cli/
 COPY downloader/ ./downloader/
 COPY filesystem/ ./filesystem/
+COPY text/ ./text/
 RUN go get && go build -o /usr/bin/docs-cpi-pandemia
 
 FROM debian:buster-slim

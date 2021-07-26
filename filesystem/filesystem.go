@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/cuducos/docs-cpi-pandemia/text"
 )
 
 func CreateDir(d string) error {
@@ -54,7 +56,7 @@ func Exists(p string) bool {
 	return !os.IsNotExist(err)
 }
 
-func unzipFile(d string, z *zip.File) error {
+func unzipFile(d string, z *zip.File, normalize bool) error {
 	r, err := z.Open()
 	if err != nil {
 		log.Output(2, "Erro ao abrir arquivo dentro de um .zip")
@@ -63,6 +65,13 @@ func unzipFile(d string, z *zip.File) error {
 	defer r.Close()
 
 	p := filepath.Join(d, z.Name)
+	if normalize {
+		p, err = text.Normalize(p)
+		if err != nil {
+			return err
+		}
+	}
+
 	if !strings.HasPrefix(p, filepath.Clean(d)+string(os.PathSeparator)) {
 		return fmt.Errorf("Erro ao extrair arquivo em %s: %s", d, p)
 	}
@@ -84,7 +93,7 @@ func unzipFile(d string, z *zip.File) error {
 	return err
 }
 
-func Unzip(p string) error {
+func Unzip(p string, normalize bool) error {
 	r, err := zip.OpenReader(p)
 	if err != nil {
 		return err
@@ -95,7 +104,7 @@ func Unzip(p string) error {
 	os.MkdirAll(d, 0755)
 
 	for _, f := range r.File {
-		err := unzipFile(d, f)
+		err := unzipFile(d, f, normalize)
 		if err != nil {
 			return err
 		}
