@@ -79,14 +79,6 @@ func getFileName(s *settings, u string) (string, error) {
 	return text.Normalize(p[1])
 }
 
-func unarchive(p string) error {
-	if !strings.HasSuffix(strings.ToLower(p), ".zip") {
-		return nil
-	}
-
-	return filesystem.Unzip(p, true)
-}
-
 func downloadFile(s *settings, u string) result {
 	if s.cache.Exists(u) {
 		return result{u, nil}
@@ -116,10 +108,6 @@ func downloadFile(s *settings, u string) result {
 
 	_, err = io.Copy(t, r.Body)
 	if err != nil {
-		return result{u, err}
-	}
-
-	if err := unarchive(f); err != nil {
 		return result{u, err}
 	}
 

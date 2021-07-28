@@ -2,7 +2,7 @@
 
 A [CPI da Pandemia](https://legis.senado.leg.br/comissoes/comissao?codcol=2441) recebeu milhares de documentos **públicos**, [todos disponibilizados no site do Senado Federal](https://legis.senado.leg.br/comissoes/docsRecCPI?codcol=2441).
 
-Mas como clicar um por um leva tempo, automatizamos o **download** e **descompactação** de todos esses arquivos, facilitando assim não só o acesso, mas também buscas nos arquivos com ferramentas como Evernote, Spotlight, etc.
+Mas como clicar um por um leva tempo, automatizamos o **download** de todos esses arquivos, facilitando assim não só o acesso, mas também buscas nos arquivos com ferramentas como Evernote, Spotlight, etc.
 
 ## Avisos importantes
 
