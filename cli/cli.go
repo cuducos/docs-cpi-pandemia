@@ -3,6 +3,7 @@ package cli
 import (
 	"github.com/cuducos/docs-cpi-pandemia/downloader"
 	"github.com/cuducos/docs-cpi-pandemia/filesystem"
+	"github.com/cuducos/docs-cpi-pandemia/unzip"
 	"github.com/spf13/cobra"
 )
 
@@ -16,12 +17,16 @@ var cleanUp bool
 var cmd = &cobra.Command{
 	Use:   "docs-cpi-pandemia",
 	Short: help,
-	Run: func(_ *cobra.Command, _ []string) {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		if cleanUp {
 			filesystem.CleanDir(directory)
 		}
 
-		downloader.Download(directory, workers, retries)
+		if err := downloader.Download(directory, workers, retries); err != nil {
+			return err
+		}
+
+		return unzip.UnzipAll(directory)
 	},
 }
 

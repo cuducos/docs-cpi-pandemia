@@ -4,14 +4,13 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/cuducos/docs-cpi-pandemia/bar"
 	"github.com/cuducos/docs-cpi-pandemia/cache"
 	"github.com/cuducos/docs-cpi-pandemia/filesystem"
 	"github.com/cuducos/docs-cpi-pandemia/text"
@@ -155,30 +154,15 @@ func queueConsumer(s *settings, q chan string, workers int) error {
 	return nil
 }
 
-func Download(d string, w, r uint) {
-	log.Output(2, fmt.Sprintf("Colentando URLs para baixar…"))
+func Download(d string, w, r uint) error {
 	us, err := getUrls()
 	if err != nil {
-		log.Output(2, fmt.Sprintf("Erro ao coletar as URLS: %s", err.Error()))
-		os.Exit(1)
+		return fmt.Errorf("Erro ao coletar as URLS: %s", err.Error())
 	}
 
 	s := settings{
 		retryablehttp.NewClient(),
-		progressbar.NewOptions(
-			len(us),
-			progressbar.OptionSetItsString("arquivos"),
-			progressbar.OptionSetDescription("Baixando arquivos"),
-			progressbar.OptionEnableColorCodes(true),
-			progressbar.OptionThrottle(3*time.Second),
-			// default values
-			progressbar.OptionSetWidth(10),
-			progressbar.OptionShowCount(),
-			progressbar.OptionShowIts(),
-			progressbar.OptionOnCompletion(func() { fmt.Fprint(os.Stderr, "\n") }),
-			progressbar.OptionSpinnerType(14),
-			progressbar.OptionFullWidth(),
-		),
+		bar.New(len(us), "arquivos", "Baixando", 3),
 		cache.Cache{Directory: d},
 		d,
 	}
@@ -186,8 +170,7 @@ func Download(d string, w, r uint) {
 	s.client.Logger = nil
 
 	if err := filesystem.CreateDir(s.directory); err != nil {
-		log.Output(2, fmt.Sprintf("Erro ao criar diretório %s: %s", s.directory, err.Error()))
-		os.Exit(1)
+		fmt.Errorf("Erro ao criar diretório %s: %s", s.directory, err.Error())
 	}
 
 	q := make(chan string)
@@ -195,9 +178,9 @@ func Download(d string, w, r uint) {
 		go func(u string) { q <- u }(u)
 	}
 
-	log.Output(2, fmt.Sprintf("Começando a baixar os arquivos…"))
 	if err := queueConsumer(&s, q, int(w)); err != nil {
-		log.Output(2, fmt.Sprintf("Erro ao coletar as URLS: %s", err.Error()))
-		os.Exit(1)
+		fmt.Errorf("Erro ao coletar as URLS: %s", err.Error())
 	}
+
+	return nil
 }
