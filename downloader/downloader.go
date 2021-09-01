@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/cuducos/docs-cpi-pandemia/bar"
@@ -154,10 +156,11 @@ func queueConsumer(s *settings, q chan string, workers int) error {
 	return nil
 }
 
-func Download(d string, w, r uint) error {
+func Download(d string, w, r uint, t time.Duration) error {
+	log.Output(2, fmt.Sprintf("Colentando URLs para baixar…"))
 	us, err := getUrls()
 	if err != nil {
-		return fmt.Errorf("Erro ao coletar as URLS: %s", err.Error())
+		return fmt.Errorf("Erro ao coletar as URLS: %s", err)
 	}
 
 	s := settings{
@@ -168,9 +171,10 @@ func Download(d string, w, r uint) error {
 	}
 	s.client.RetryMax = int(r)
 	s.client.Logger = nil
+	s.client.HTTPClient.Timeout = t
 
 	if err := filesystem.CreateDir(s.directory); err != nil {
-		fmt.Errorf("Erro ao criar diretório %s: %s", s.directory, err.Error())
+		return fmt.Errorf("Erro ao criar diretório %s: %s", s.directory, err)
 	}
 
 	q := make(chan string)
@@ -178,9 +182,6 @@ func Download(d string, w, r uint) error {
 		go func(u string) { q <- u }(u)
 	}
 
-	if err := queueConsumer(&s, q, int(w)); err != nil {
-		fmt.Errorf("Erro ao coletar as URLS: %s", err.Error())
-	}
-
-	return nil
+	log.Output(2, fmt.Sprintf("Começando a baixar os arquivos…"))
+	return queueConsumer(&s, q, int(w))
 }

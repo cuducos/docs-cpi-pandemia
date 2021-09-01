@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"time"
+
 	"github.com/cuducos/docs-cpi-pandemia/downloader"
 	"github.com/cuducos/docs-cpi-pandemia/filesystem"
 	"github.com/cuducos/docs-cpi-pandemia/unzip"
@@ -13,6 +15,7 @@ var workers uint
 var retries uint
 var directory string
 var cleanUp bool
+var timeout string
 
 var cmd = &cobra.Command{
 	Use:   "docs-cpi-pandemia",
@@ -22,7 +25,12 @@ var cmd = &cobra.Command{
 			filesystem.CleanDir(directory)
 		}
 
-		if err := downloader.Download(directory, workers, retries); err != nil {
+		dur, err := time.ParseDuration(timeout)
+		if err != nil {
+			return err
+		}
+
+		if err := downloader.Download(directory, workers, retries, dur); err != nil {
 			return err
 		}
 
@@ -58,6 +66,13 @@ func CLI() *cobra.Command {
 		"r",
 		16,
 		"Maximum retries for the same URL",
+	)
+	cmd.Flags().StringVarP(
+		&timeout,
+		"timeout",
+		"t",
+		"25m",
+		"Timeout for each download",
 	)
 	return cmd
 }
