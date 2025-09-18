@@ -1,21 +1,26 @@
 package cli
 
 import (
+	"path/filepath"
 	"time"
 
 	"github.com/cuducos/docs-cpi-pandemia/downloader"
 	"github.com/cuducos/docs-cpi-pandemia/filesystem"
 	"github.com/cuducos/docs-cpi-pandemia/unzip"
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
 )
 
 const help = "Downloads all public documents received by the CPI da Pandemia"
 
-var workers uint
-var retries uint
-var directory string
-var cleanUp bool
-var timeout string
+var (
+	conns     uint
+	retries   uint
+	directory string
+	cleanUp   bool
+	timeout   string
+	tolerant  bool
+)
 
 var cmd = &cobra.Command{
 	Use:   "docs-cpi-pandemia",
@@ -24,17 +29,18 @@ var cmd = &cobra.Command{
 		if cleanUp {
 			filesystem.CleanDir(directory)
 		}
-
 		dur, err := time.ParseDuration(timeout)
 		if err != nil {
 			return err
 		}
-
-		if err := downloader.Download(directory, workers, retries, dur); err != nil {
+		if err := downloader.Download(directory, conns, retries, dur, tolerant); err != nil {
 			return err
-		}
 
-		return unzip.UnzipAll(directory)
+		}
+		g := new(errgroup.Group)
+		g.Go(func() error { return unzip.UnzipAll(directory) })
+		g.Go(func() error { return filesystem.CleanDir(filepath.Join(directory, ".cache")) })
+		return g.Wait()
 	},
 }
 
@@ -54,10 +60,10 @@ func CLI() *cobra.Command {
 		"Target directory to download the files",
 	)
 	cmd.Flags().UintVarP(
-		&workers,
-		"workers",
-		"w",
-		8,
+		&conns,
+		"parallel",
+		"p",
+		32,
 		"Maximum parallels downloads allowed",
 	)
 	cmd.Flags().UintVarP(
@@ -73,6 +79,13 @@ func CLI() *cobra.Command {
 		"t",
 		"25m",
 		"Timeout for each download",
+	)
+	cmd.Flags().BoolVarP(
+		&tolerant,
+		"tolerant",
+		"x",
+		false,
+		"Tolerate download errors by logging them instead of crashing",
 	)
 	return cmd
 }

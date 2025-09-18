@@ -2,49 +2,40 @@ package unzip
 
 import (
 	"archive/zip"
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 
 	"github.com/cuducos/docs-cpi-pandemia/bar"
 	"github.com/cuducos/docs-cpi-pandemia/text"
+	"golang.org/x/sync/errgroup"
 )
 
 type archive struct {
-	zipFileNames []string
-	dir          string
-	target       string
-	norm         bool
-}
-
-func (a archive) entryFile() (string, error) {
-	if len(a.zipFileNames) == 0 {
-		return "", errors.New("No ZIP file path for this archive")
-	}
-
-	return filepath.Join(a.dir, a.zipFileNames[0]), nil
+	zips   []string
+	dir    string
+	target string
 }
 
 func (a archive) createTarget() error {
-	return os.MkdirAll(filepath.Join(a.dir, a.target), 0755)
+	p := filepath.Join(a.dir, a.target)
+	if err := os.MkdirAll(p, 0755); err != nil {
+		return fmt.Errorf("could not create target directory %s: %w", p, err)
+	}
+	return nil
 }
 
 func (a archive) remove() error {
-	for _, p := range a.zipFileNames {
-		err := os.Remove(filepath.Join(a.dir, p))
-		if err != nil {
-			return err
-		}
+	g := new(errgroup.Group)
+	for _, p := range a.zips {
+		g.Go(func() error { return os.Remove(filepath.Join(a.dir, p)) })
 	}
-
-	return nil
+	return g.Wait()
 }
 
 func (a archive) unzipFile(z *zip.File) error {
@@ -53,155 +44,123 @@ func (a archive) unzipFile(z *zip.File) error {
 		return err
 	}
 	defer r.Close()
-
-	pth := filepath.Join(a.target, z.Name)
-	if a.norm {
-		pth, err = text.Normalize(pth)
-		if err != nil {
-			return err
-		}
+	pth := filepath.Join(a.dir, a.target, z.Name)
+	pth, err = text.Normalize(pth)
+	if err != nil {
+		return err
 	}
-
-	if !strings.HasPrefix(pth, filepath.Clean(a.target)+string(os.PathSeparator)) {
-		return fmt.Errorf("Erro ao extrair arquivo em %s: %s", a.target, pth)
-	}
-
 	if z.FileInfo().IsDir() {
-		os.MkdirAll(pth, 0755)
+		if err := os.MkdirAll(pth, 0755); err != nil {
+			return fmt.Errorf("could not create subdirectory %s: %w", pth, err)
+		}
 		return nil
 	}
-
-	os.MkdirAll(filepath.Dir(pth), 0755)
+	if err := os.MkdirAll(filepath.Dir(pth), 0755); err != nil {
+		return fmt.Errorf("could not create parent directory %s: %w", pth, err)
+	}
 	w, err := os.OpenFile(pth, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
-		log.Output(2, "Erro ao criar arquivo descompactado")
+		slog.Error("error unarchiving", "file", pth)
 		return err
 	}
 	defer w.Close()
-
 	_, err = io.Copy(w, r)
 	return err
 }
 
 func (a archive) unzip() error {
-	pth, err := a.entryFile()
-	if err != nil {
+	if len(a.zips) == 0 {
+		slog.Debug("no source files", "archive", a)
+		return nil
+	}
+	if err := a.createTarget(); err != nil {
 		return err
 	}
-
-	if err = a.createTarget(); err != nil {
+	g := new(errgroup.Group)
+	for _, z := range a.zips {
+		g.Go(func() error {
+			pth := filepath.Join(a.dir, z)
+			r, err := zip.OpenReader(pth)
+			if err != nil {
+				return err
+			}
+			defer r.Close()
+			sg := new(errgroup.Group)
+			for _, f := range r.File {
+				sg.Go(func() error { return a.unzipFile(f) })
+			}
+			return sg.Wait()
+		})
+	}
+	if err := g.Wait(); err != nil {
 		return err
 	}
-
-	r, err := zip.OpenReader(pth)
-	if err != nil {
-		return err
-	}
-	defer r.Close()
-
-	for _, f := range r.File {
-		err := a.unzipFile(f)
-		if err != nil {
-			return err
-		}
-	}
-
 	return a.remove()
 }
 
 func getTargetDir(zip string) (string, error) {
-	sequence := regexp.MustCompile("(?i)(.+\\D)(\\d+)(\\.zip)$")
-	if sequence.MatchString(zip) {
-		return sequence.FindStringSubmatch(zip)[1], nil
+	seq := regexp.MustCompile(`(?i)(.+\D)(\d+)(\.zip)$`)
+	if seq.MatchString(zip) {
+		return seq.FindStringSubmatch(zip)[1], nil
 	}
-
-	single := regexp.MustCompile("(?i)\\.zip$")
-	if single.MatchString(zip) {
-		return single.ReplaceAllString(zip, ""), nil
+	one := regexp.MustCompile(`(?i)\.zip$`)
+	if one.MatchString(zip) {
+		return one.ReplaceAllString(zip, ""), nil
 	}
-
-	return "", fmt.Errorf("Cannot detect target directory name for %s", zip)
+	return "", fmt.Errorf("cannot detect target directory name for %s", zip)
 }
 
 func getArchives(dir string) ([]archive, error) {
-	var zips []string
+	c := filepath.Join(dir, ".cache")
+	var zs []string
 	filepath.WalkDir(
 		dir,
 		func(pth string, entry fs.DirEntry, err error) error {
-			if entry.IsDir() {
+			if entry.IsDir() || strings.HasPrefix(pth, c) || !strings.HasSuffix(strings.ToLower(pth), ".zip") {
 				return nil
 			}
-			if !strings.HasSuffix(strings.ToLower(pth), ".zip") {
-				return nil
-			}
-
-			zips = append(zips, filepath.Base(pth))
+			zs = append(zs, filepath.Base(pth))
 			return nil
 		},
 	)
-	sort.Strings(zips)
-
-	var lastTarget string
-	var batch []string
-	var as []archive
-	for i, zip := range zips {
-		target, err := getTargetDir(zip)
+	m := make(map[string]archive)
+	for _, z := range zs {
+		target, err := getTargetDir(z)
 		if err != nil {
 			return nil, err
 		}
-
-		if target != lastTarget {
-			as = append(
-				as,
-				archive{
-					zipFileNames: batch,
-					dir:          dir,
-					target:       lastTarget,
-					norm:         true,
-				},
-			)
-			batch = []string{}
+		a := m[target]
+		if len(a.zips) == 0 {
+			a.dir = dir
+			a.target = target
 		}
-
-		batch = append(batch, zip)
-		lastTarget = target
-
-		if i+1 == len(zips) {
-			as = append(
-				as,
-				archive{
-					zipFileNames: batch,
-					dir:          dir,
-					target:       target,
-					norm:         true,
-				},
-			)
-		}
+		a.zips = append(a.zips, z)
+		m[target] = a
 	}
-
+	var as []archive
+	for _, a := range m {
+		as = append(as, a)
+	}
 	return as, nil
 }
 
 func UnzipAll(dir string) error {
 	as, err := getArchives(dir)
 	if err != nil {
-		return fmt.Errorf("Erro ao coletar os arquivos compactados: %s", err.Error())
+		return fmt.Errorf("error collecting archived files: %w", err)
 	}
-
-	queue := make(chan error)
-	bar := bar.New(len(as), "arquivos", "Descompactando", 3)
+	ch := make(chan error)
+	bar := bar.New(len(as), "arquivos", "Descompactando")
 	for _, a := range as {
 		go func(a archive) {
-			queue <- a.unzip()
+			ch <- a.unzip()
 		}(a)
 	}
-
 	for range as {
-		if err = <-queue; err != nil {
-			return err
+		if err = <-ch; err != nil {
+			slog.Error("could not unzip", "error", err)
 		}
 		bar.Add(1)
 	}
-
 	return nil
 }

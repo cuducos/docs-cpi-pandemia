@@ -14,7 +14,6 @@ func CreateDir(d string) error {
 		}
 		return err
 	}
-
 	return nil
 }
 

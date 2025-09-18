@@ -16,7 +16,6 @@ func Normalize(s string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	if !utf8.ValidString(r) {
 		r, err = charmap.ISO8859_1.NewDecoder().String(r)
 		if err != nil {
